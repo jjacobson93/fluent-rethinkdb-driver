@@ -42,11 +42,21 @@ public class RethinkDBDriver: Fluent.Driver {
             }
             
             let writeResult: WriteResult = try reql.run(conn)
-            if let id = writeResult.generatedKeys.first {
+            if query.action == .create, let id = writeResult.generatedKeys.first {
                 return .string(id)
             }
             
-            result = writeResult
+            guard let first = writeResult.changes.first else {
+                return .array([])
+            }
+            
+            if query.action == .delete {
+                result = [first.oldValue]
+            }
+            
+            if query.action == .modify {
+                result = [first.newValue]
+            }
         case .fetch:
             let reql = try self.fetch(query)
             let cursor: Cursor<Document> = try reql.run(conn)
@@ -109,11 +119,11 @@ public class RethinkDBDriver: Fluent.Driver {
     
     func modify<T: Entity>(_ query: Fluent.Query<T>) throws -> ReqlExpr {
         let doc = self.document(from: query)
-        return try self.fetch(query).update(doc)
+        return try self.fetch(query).update(doc, options: .returnChanges(true))
     }
     
     func delete<T: Entity>(_ query: Fluent.Query<T>) throws -> ReqlExpr {
-        return try self.fetch(query).delete()
+        return try self.fetch(query).delete(.returnChanges(true))
     }
     
     func filter(_ filter: Fluent.Filter, _ reql: ReqlExpr) -> ReqlExpr {
@@ -183,7 +193,7 @@ public class RethinkDBDriver: Fluent.Driver {
         let data = query.data?.nodeObject ?? [:]
         var doc = [String: Any]()
         for (key, value) in data {
-            if key == self.idKey && ignoreId {
+            if key == self.idKey && value == .null && ignoreId {
                 continue
             }
             
