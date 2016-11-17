@@ -72,6 +72,8 @@ public class RethinkDBDriver: Fluent.Driver {
         case .create(let table, _):
             // we ignore the fields here because RethinkDB tables are schema-less
             let _: WriteResult = try r.tableCreate(table).run(conn)
+            // wait until the table is ready, otherwise someone might try to access it
+            let _: Document = try r.table(table).wait().run(conn)
         case .delete(let table):
             let _: WriteResult = try r.tableDrop(table).run(conn)
         default:
