@@ -205,28 +205,37 @@ public class RethinkDBDriver: Fluent.Driver {
     }
 
     func anyToNode(_ a: Any) -> Node {
+        if let num = a as? Number {
+            switch num {
+            case .double(let d): return .number(.double(d))
+            case .float(let f): return .number(.double(Double(f)))
+            case .int(let i): return .number(.int(Int(i)))
+            case .uint(let u): return .number(.uint(UInt(u)))
+            }
+        }
+
         if let int = a as? Int {
-            return Node(int)
+            return .number(.int(int))
         }
 
         if let uint = a as? UInt {
-            return Node(uint)
+            return .number(.uint(uint))
         }
 
         if let bool = a as? Bool {
-            return Node(bool)
+            return .bool(bool)
         }
 
         if let str = a as? String {
-            return Node(str)
+            return .string(str)
         }
 
         if let double = a as? Double {
-            return Node(double)
+            return .number(.double(double))
         }
 
         if let arr = a as? [Any] {
-            return Node(arr.map { self.anyToNode($0) })
+            return .array(arr.map { self.anyToNode($0) })
         }
 
         if let dict = a as? [String: Any] {
@@ -234,7 +243,7 @@ public class RethinkDBDriver: Fluent.Driver {
             for key in dict.keys {
                 d[key] = self.anyToNode(dict[key]!)
             }
-            return Node(d)
+            return .object(d)
         }
         
         if let doc = a as? Document {
@@ -242,7 +251,7 @@ public class RethinkDBDriver: Fluent.Driver {
         }
 
         if let bytes = a as? [UInt8] {
-            return Node(bytes: bytes)
+            return .bytes(bytes)
         }
 
         if let node = a as? Node {
