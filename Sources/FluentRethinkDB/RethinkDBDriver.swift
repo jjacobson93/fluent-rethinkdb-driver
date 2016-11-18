@@ -29,7 +29,6 @@ public class RethinkDBDriver: Fluent.Driver {
 
     public func query<T: Entity>(_ query: Fluent.Query<T>) throws -> Node {
         let conn = self.connection
-        var result: Any = Node.null
         switch query.action {
         case .create, .modify, .delete:
             let reql: ReqlExpr
@@ -51,19 +50,20 @@ public class RethinkDBDriver: Fluent.Driver {
             }
             
             if query.action == .delete {
-                result = [first.oldValue]
+                return try [first.oldValue].makeNode()
             }
             
             if query.action == .modify {
-                result = [first.newValue]
+                return try [first.newValue].makeNode()
             }
         case .fetch:
             let reql = try self.fetch(query)
             let cursor: Cursor<Document> = try reql.run(conn)
-            result = cursor.toArray()
+            let result = cursor.toArray()
+            return try result.makeNode()
         }
         
-        return self.anyToNode(result)
+        return .null
     }
 
     public func schema(_ schema: Fluent.Schema) throws {
@@ -202,62 +202,5 @@ public class RethinkDBDriver: Fluent.Driver {
             doc[key] = value.json
         }
         return Document(element: doc)
-    }
-
-    func anyToNode(_ a: Any) -> Node {
-        if let num = a as? Number {
-            switch num {
-            case .double(let d): return .number(.double(d))
-            case .float(let f): return .number(.double(Double(f)))
-            case .int(let i): return .number(.int(Int(i)))
-            case .uint(let u): return .number(.uint(UInt(u)))
-            }
-        }
-
-        if let int = a as? Int {
-            return .number(.int(int))
-        }
-
-        if let uint = a as? UInt {
-            return .number(.uint(uint))
-        }
-
-        if let bool = a as? Bool {
-            return .bool(bool)
-        }
-
-        if let str = a as? String {
-            return .string(str)
-        }
-
-        if let double = a as? Double {
-            return .number(.double(double))
-        }
-
-        if let arr = a as? [Any] {
-            return .array(arr.map { self.anyToNode($0) })
-        }
-
-        if let dict = a as? [String: Any] {
-            var d = [String: Node]()
-            for key in dict.keys {
-                d[key] = self.anyToNode(dict[key]!)
-            }
-            return .object(d)
-        }
-        
-        if let doc = a as? Document {
-            return self.anyToNode(doc.json)
-        }
-
-        if let bytes = a as? [UInt8] {
-            return .bytes(bytes)
-        }
-
-        if let node = a as? Node {
-            return node
-        }
-
-        return .null
     }
 }

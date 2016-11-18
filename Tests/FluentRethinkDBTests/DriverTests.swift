@@ -1,3 +1,10 @@
+#if os(Linux)
+    import Glibc
+#else
+    import Darwin
+#endif
+
+import Foundation
 import XCTest
 @testable import FluentRethinkDB
 @testable import Fluent
@@ -47,7 +54,7 @@ class DriverTests: XCTestCase {
     }
     
     func testSave() throws {
-        var post = Post(id: nil, title: "Hello, world", text: "foobar")
+        var post = Post(id: nil, title: "Hello, world", text: "foobar", comments: ["Welcome!", "Guten Tag!"], postedAt: Date())
         
         do {
             try post.save()
@@ -57,7 +64,7 @@ class DriverTests: XCTestCase {
     }
     
     func testFind() throws {
-        let post = Post(id: nil, title: "Come find me!", text: "You probably can't")
+        let post = Post(id: nil, title: "Come find me!", text: "You probably can't", comments: ["Yes, I found you."], postedAt: Date())
         let id = self.saveAndValidate(post: post)
         
         do {
@@ -71,10 +78,13 @@ class DriverTests: XCTestCase {
     }
     
     func testUpdate() throws {
+        let title = "Typos"
         let badText = "We all mkae tpyos stomtiems"
         let goodText = "We all make typos sometimes"
+        let comments = ["Learn to spell!", "Why can't you spell?!"]
+        let now = Date()
         
-        var post = Post(id: nil, title: "Typos", text: badText)
+        var post = Post(id: nil, title: title, text: badText, comments: comments, postedAt: now)
         
         let id = self.saveAndValidate(post: post)
     
@@ -97,15 +107,18 @@ class DriverTests: XCTestCase {
         do {
             let found = try Post.find(id)
             XCTAssertNotNil(found)
-            XCTAssertEqual(post.title, found!.title)
-            XCTAssertEqual(post.text, found!.text)
+            XCTAssertEqual(title, found!.title)
+            XCTAssertEqual(goodText, found!.text)
+            XCTAssertEqual(comments, found!.comments)
+            // RethinkDB rounds to the nearest thousandth
+            XCTAssertEqual(round(now.timeIntervalSince1970*1000), round(found!.postedAt.timeIntervalSince1970*1000))
         } catch {
             XCTFail("Could not fetch post: \(error)")
         }
     }
     
     func testDelete() throws {
-        let post = Post(id: nil, title: "Get rid of me", text: "(x _ x)")
+        let post = Post(id: nil, title: "Get rid of me", text: "(x _ x)", comments: ["Terrible"], postedAt: Date())
         let id = self.saveAndValidate(post: post)
         
         do {

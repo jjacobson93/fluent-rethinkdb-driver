@@ -1,3 +1,4 @@
+import Foundation
 import Fluent
 
 final class Post: Entity {
@@ -13,18 +14,24 @@ final class Post: Entity {
     var id: Fluent.Node?
     var title: String
     var text: String
+    var postedAt: Date
+    var comments: [String]
     
-    init(id: Node?, title: String, text: String) {
+    init(id: Node?, title: String, text: String, comments: [String], postedAt: Date) {
         self.id = id
         self.title = title
         self.text = text
+        self.comments = comments
+        self.postedAt = postedAt
     }
     
     func makeNode(context:Context) throws -> Node {
         return try Node(node: [
             "id": id,
             "title": title,
-            "text": text
+            "text": text,
+            "comments": comments.makeNode(context: context),
+            "postedAt": postedAt.makeNode(context: context)
         ])
     }
     
@@ -32,6 +39,8 @@ final class Post: Entity {
         id = try node.extract("id")
         title = try node.extract("title")
         text = try node.extract("text")
+        comments = try node.extract("comments")
+        postedAt = try node.extract("postedAt")
     }
     
     static func prepare(_ database: Fluent.Database) throws {
