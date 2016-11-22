@@ -57,6 +57,8 @@ extension Document: NodeConvertible {
             return try d.makeNode()
         case .document(let doc):
             return try doc.makeNode()
+        case .geometry(let geo):
+            return try geo.makeNode()
         }
     }
     
@@ -79,12 +81,18 @@ extension Document: NodeConvertible {
         case .array(let arr):
             return .array(try arr.map({ try Document.reqlValue(from: $0) }))
         case .object:
-            let reqlType: String = (try? node.extract("$reql_type$")) ?? ""
-            if reqlType == "TIME" {
-                let epochTime: Double = try node.extract("epoch_time")
-                return .date(Date(timeIntervalSince1970: epochTime))
+            if let reqlTypeRaw: String = try? node.extract(ReqlType.key),
+                let reqlType = ReqlType(rawValue: reqlTypeRaw) {
+                switch reqlType {
+                case .time:
+                    return .date(try Date(node: node, in: EmptyNode))
+                case .binary:
+                    return .data(try Data(node: node, in: EmptyNode))
+                case .geometry:
+                    return .geometry(try Geometry(node: node, in: EmptyNode))
+                }
             }
-            return try Document(node: node, in: EmptyNode).reqlValue
+            return .document(try Document(node: node, in: EmptyNode))
         }
     }
 }

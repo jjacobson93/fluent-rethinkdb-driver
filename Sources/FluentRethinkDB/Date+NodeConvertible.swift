@@ -8,6 +8,7 @@
 
 import Foundation
 import Node
+import RethinkDB
 
 extension Date: NodeConvertible {
     public init(node: Node, in context: Context) throws {
@@ -17,7 +18,7 @@ extension Date: NodeConvertible {
     
     public func makeNode(context: Context) throws -> Node {
         return try Node(node: [
-            "$reql_type$": "TIME",
+            ReqlType.key: ReqlType.time.rawValue,
             "epoch_time": self.timeIntervalSince1970,
             "timezone": "+00:00"
         ])
