@@ -12,6 +12,11 @@ import RethinkDB
 
 extension Data: NodeConvertible {
     public init(node: Node, in context: Context) throws {
+        if case .bytes(let bytes) = node {
+            self = Data(bytes: bytes)
+            return
+        }
+        
         let data: String = try node.extract("data")
         self = Data.from(["data": data])
     }
