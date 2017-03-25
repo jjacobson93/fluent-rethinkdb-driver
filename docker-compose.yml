@@ -10,3 +10,5 @@ services:
     # command: /bin/bash -c "tail -f /dev/null"
   rethinkdb:
     image: 'library/rethinkdb'
+    ports:
+      - 28015:28015

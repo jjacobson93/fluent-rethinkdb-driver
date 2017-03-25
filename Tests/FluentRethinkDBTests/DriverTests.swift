@@ -13,6 +13,7 @@ class DriverTests: XCTestCase {
     static var allTests: [(String, (DriverTests) -> () throws -> Void)] = [
         ("testSave", testSave),
         ("testFind", testFind),
+        ("testCount", testCount),
         ("testUpdate", testUpdate),
         ("testDelete", testDelete)
     ]
@@ -74,6 +75,18 @@ class DriverTests: XCTestCase {
             XCTAssertEqual(post.text, found!.text)
         } catch {
             XCTFail("Could not fetch post: \(error)")
+        }
+    }
+    
+    func testCount() throws {
+        let post = Post(id: nil, title: "Count me", text: "Please", comments: ["Counted."], postedAt: Date())
+        _ = self.saveAndValidate(post: post)
+        
+        do {
+            let count = try Post.query().count()
+            XCTAssertGreaterThanOrEqual(count, 1)
+        } catch {
+            XCTFail("Could not count posts: \(error)")
         }
     }
     

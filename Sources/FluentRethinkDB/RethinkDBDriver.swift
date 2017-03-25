@@ -56,8 +56,13 @@ public class RethinkDBDriver: Fluent.Driver {
             if query.action == .modify {
                 return try [first.newValue].makeNode()
             }
-        case .fetch:
+        case .fetch, .count:
             let reql = try self.fetch(query)
+            if case .count = query.action {
+                let count: Int64 = try reql.count().run(conn)
+                return try count.makeNode()
+            }
+            
             let cursor: Cursor<Document> = try reql.run(conn)
             let result = cursor.toArray()
             return try result.makeNode()
